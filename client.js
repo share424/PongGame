@@ -1,50 +1,82 @@
 var ws;
-var shitPos = [ // 0 = nothing
-    [0, 0, 0], //1 = circle
-    [0, 0, 0], //2 = cross
-    [0, 0, 0]
-]
-var playerShit = 'x';
-var myTurn = true;
+
 var player1, player2;
 var ball;
 var movementSpeed = 10;
+var playerType;
+var isReady = false;
 function setup(){
 
     createCanvas(600, 400);
     frameRate(30);
     player1 = new Player(true);
     player2 = new Player(false);
-    ball = new Ball();
+    if(confirm('Are you player 1?')){
+        playerType = 1;
+    } else {
+        playerType = 2;
+    }
+    init();
 }
 
 
 
 function draw(){
     background(51);
-    if(keyIsPressed && key == 'd'){
-        player1.move(movementSpeed);
+    if(playerType == 1){
+        if(keyIsPressed && key == 'd'){
+            player1.move(movementSpeed);
+        }
+        if(keyIsPressed && key == 'a'){
+            player1.move(-movementSpeed);
+        }
+        if(isReady){
+            let p1 = {isPlayer: true, playerType: 1, position: player1.getPos()};
+            ws.send(JSON.stringify(p1));
+        }
+    } else if(playerType == 2){
+        if(keyIsPressed && key == 'd'){
+            player2.move(movementSpeed);
+        }
+        if(keyIsPressed && key == 'a'){
+            player2.move(-movementSpeed);
+        }
+        if(isReady){
+            let p2 = {isPlayer: true, playerType: 2, position: player2.getPos()};
+            ws.send(JSON.stringify(p2));
+        }
     }
-    if(keyIsPressed && key == 'a'){
-        player1.move(-movementSpeed);
-    }
-    if(keyIsPressed && key == 'l'){
-        player2.move(movementSpeed);
-    }
-    if(keyIsPressed && key == 'j'){
-        player2.move(-movementSpeed);
-    }
+    
+   
     player1.draw();
     player2.draw();
-    ball.draw();
+    if(ball){
+        if(playerType == 1){
+            ball.draw();
+        } else if(playerType == 2){
+            ball.draw2();
+        }
+    }
+    
+    //console.log(JSON.stringify(p1));
+    //ws.send()
 }
 
-function Ball(){
+function keyPressed(){
+    if(keyCode == 32){
+        ball = new Ball();
+    }
+}
+
+function Ball(an){
     var pos = [width/2, height/2];
     const pi = 3.141592653589793238462;
     var startAngle = Math.random() * (360 - 0) + 0;
-    console.log(startAngle);
+    //console.log(startAngle);
     var angle = (pi/180) * startAngle;
+    if(an){
+        angle = an;
+    }
     var speed = 3;
     var radius = 5;
     this.draw = function(){
@@ -68,8 +100,18 @@ function Ball(){
         pos[1] += speed*sin(angle);
         fill(255);
         circle(pos[0], pos[1], radius);
+        let p = {isPlayer: false, ball: pos, angle: angle};
+        ws.send(JSON.stringify(p));
     }
-
+    this.draw2 = function(){
+        fill(255);
+        circle(pos[0], pos[1], radius);
+    }
+    this.setPos = function(x, y, ang){
+        pos[0] = x;
+        pos[1] = y;
+        angle = ang
+    }
     
 }
 
@@ -96,6 +138,11 @@ function Player(first){
     this.getPos = function(){
         return pos;
     }
+
+    this.setPos = function(x, y){
+        pos[0] = x;
+        pos[1] = y;
+    }
 }
 
 
@@ -110,29 +157,39 @@ function init() {
     // Set event handlers.
     ws.onopen = function() {
         console.log("on open");
+        isReady = true;
     };
       
     ws.onmessage = function(e) {
         // e.data contains received string.
         console.log("on message: " + e.data);
         var move = JSON.parse(e.data);
-        if(shitPos[move.pos[1]][move.pos[0]] != 0){
-            return;
+        if(move.isPlayer){
+            if(move.playerType == 1 && playerType == 2){
+                player1.setPos(move.position[0], move.position[1])
+            }
+            if(move.playerType == 2 && playerType == 1){
+                player2.setPos(move.position[0], move.position[1])
+            }
+        } else {
+            if(playerType == 2){
+                if(!ball){
+                    ball = new Ball(move.angle);
+                }
+                ball.setPos(move.ball[0], move.ball[1], move.angle);
+            }
         }
-        if(move.shit == 'x'){
-            shitPos[move.pos[1]][move.pos[0]] = 2;
-        } else { 
-            shitPos[move.pos[1]][move.pos[0]] = 1;
-        }
-        myTurn = !myTurn;
+        
     };
       
     ws.onclose = function() {
         console.log("on close");
+        isReady = false;
     };
 
     ws.onerror = function(e) {
         console.log(e)
+        isReady = false;
     };
 
 }
