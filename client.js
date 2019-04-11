@@ -8,7 +8,7 @@ var playerShit = 'x';
 var myTurn = true;
 var player1, player2;
 var ball;
-var movementSpeed = 6;
+var movementSpeed = 10;
 function setup(){
 
     createCanvas(600, 400);
@@ -45,15 +45,17 @@ function Ball(){
     var startAngle = Math.random() * (360 - 0) + 0;
     console.log(startAngle);
     var angle = (pi/180) * startAngle;
-    var speed = 10;
+    var speed = 3;
     var radius = 5;
     this.draw = function(){
         //console.log(angle);
-        if(pos[0] - radius/2 >= width){
+        if(pos[0] - radius/2 >= player2.getPos()[0] - 5 && pos[1] - radius/2 >= player2.getPos()[1] && pos[1] - radius/2 <= player2.getPos()[1]+50){
             angle = pi - angle;
+            speed = speed <= 8 ? speed+1 : 8;
         }
-        if(pos[0] - radius/2 <= 0){
+        if(pos[0] - radius/2 <= player1.getPos()[0] + 10 && pos[1] - radius/2 >= player1.getPos()[1] && pos[1] - radius/2 <= player1.getPos()[1]+50){
             angle = pi - angle;
+            speed = speed <= 8 ? speed+1 : 8;
         }
         if(pos[1] - radius/2 <= 0){
             angle = pi - (angle - pi);
@@ -67,6 +69,8 @@ function Ball(){
         fill(255);
         circle(pos[0], pos[1], radius);
     }
+
+    
 }
 
 function Player(first){
@@ -87,6 +91,10 @@ function Player(first){
     this.draw = function(){
         fill(255);
         rect(pos[0], pos[1], 10, playerWidth);
+    }
+
+    this.getPos = function(){
+        return pos;
     }
 }
 
